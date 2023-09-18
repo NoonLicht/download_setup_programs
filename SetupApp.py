@@ -6,6 +6,7 @@ import shutil
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QCheckBox, QGridLayout, QFrame, QHBoxLayout, QFileDialog, QMessageBox
 from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
+import icons
 
 app = QApplication([])
 
@@ -27,8 +28,12 @@ def download_file(url_or_path, destination):
 class ProgramDownloader(QMainWindow):
     def __init__(self):
         super().__init__()
+        
+        app_icon = QIcon(':/icon/tab.ico')
+        taskbar_icon = QIcon(':/icon/tab.ico')
+        self.setWindowIcon(app_icon)
+        self.setWindowIcon(taskbar_icon)  # Установка иконки на панели задач
 
-        self.setWindowIcon(QIcon('./icon/tab.ico'))
 
         self.setWindowTitle("Program Downloader")
         self.setGeometry(100, 100, 1200, 550)
