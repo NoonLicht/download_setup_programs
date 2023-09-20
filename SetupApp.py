@@ -1,12 +1,11 @@
-import sys
 import os
 import requests
 import subprocess
 import shutil
+import threading
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QCheckBox, QGridLayout, QFrame, QHBoxLayout, QFileDialog, QMessageBox
 from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
-import icons
 
 app = QApplication([])
 
@@ -271,15 +270,25 @@ class ProgramDownloader(QMainWindow):
                 button-layout: 0;
             }
         ''')
-    def download_selected_programs(self):
+    def run_download_thread(self, program_name, download_link_or_path, download_folder):
+        if download_link_or_path:
+            file_name = os.path.join(download_folder, f"{program_name}.exe")
+            if download_file(download_link_or_path, file_name):
+                self.downloaded_programs += 1
+                progress_value = int((self.downloaded_programs / self.selected_programs) * 100)
+                self.progress_bar.setValue(progress_value)
+        else:
+            QMessageBox.critical(self, "Error", f"No download link or path found for {program_name}")
 
+    def download_selected_programs(self):
         download_folder = QFileDialog.getExistingDirectory(self, "Select Download Folder", QDir.currentPath())
 
         if not download_folder:
             QMessageBox.critical(self, "Error", "Please select a download folder.")
             return
 
-        selected_programs = 0
+        self.selected_programs = 0
+        self.downloaded_programs = 0
 
         for category, frame in self.category_frames.items():
             for i in range(frame.layout().count()):
@@ -287,9 +296,7 @@ class ProgramDownloader(QMainWindow):
                 if isinstance(widget, QCheckBox):
                     checkbox = widget
                     if checkbox.isChecked():
-                        selected_programs += 1
-
-        downloaded_programs = 0
+                        self.selected_programs += 1
 
         for category, frame in self.category_frames.items():
             for i in range(frame.layout().count()):
@@ -299,14 +306,8 @@ class ProgramDownloader(QMainWindow):
                     if checkbox.isChecked():
                         program_name = checkbox.text()
                         download_link_or_path = self.programs[category][program_name]
-                        if download_link_or_path:
-                            file_name = os.path.join(download_folder, f"{program_name}.exe")
-                            if download_file(download_link_or_path, file_name):
-                                downloaded_programs += 1
-                                progress_value = int((downloaded_programs / selected_programs) * 100)
-                                self.progress_bar.setValue(progress_value)
-                        else:
-                            QMessageBox.critical(self, "Error", f"No download link or path found for {program_name}")
+                        download_thread = threading.Thread(target=self.run_download_thread, args=(program_name, download_link_or_path, download_folder))
+                        download_thread.start()
 
     def create_category_frames(self):
         for i, category in enumerate(self.programs.keys()):
