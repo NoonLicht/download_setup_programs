@@ -1,4 +1,5 @@
-![image](https://github.com/NoonLicht/download_setup_programs/assets/121355541/b2592f9f-ae7f-45b0-8ed3-7e958e612d6b)
+![image](https://github.com/NoonLicht/download_setup_programs/assets/121355541/b82716cb-ffb1-44e4-9f91-d9f95aa8a979)
+
 
 ### Для сборки используйте библиотеку pyinstaller ###
 ```
