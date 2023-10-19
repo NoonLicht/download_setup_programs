@@ -6,6 +6,7 @@ import threading
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QCheckBox, QGridLayout, QFrame, QHBoxLayout, QFileDialog, QMessageBox
 from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
+import urllib.request
 
 app = QApplication([])
 
@@ -32,7 +33,7 @@ class ProgramDownloader(QMainWindow):
         taskbar_icon = QIcon(':/icon/tab.ico')
         self.setWindowIcon(app_icon)
         self.setWindowIcon(taskbar_icon)  # Установка иконки на панели задач
-
+        self.download_completed_event = threading.Event()
 
         self.setWindowTitle("Program Downloader")
         self.setGeometry(100, 100, 1200, 550)
@@ -58,7 +59,7 @@ class ProgramDownloader(QMainWindow):
                 "MSI Afterburner": "https://dl.comss.org/download/MSIAfterburnerSetup465.exe",
                 "AMD Software": "https://dl.comss.org/download/whql-amd-software-adrenalin-edition-23.9.1-win10-win11-sep6.exe",
                 "NVidia Driver": "https://dl.comss.org/download/GeForce_Experience_v3.27.0.112.exe",
-                "OpenVPN": "https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.6-I001-amd64.msi",
+                "OpenVPN(!)": "",
             },
             "Клиент": {
                 "Steam": "https://cdn.akamai.steamstatic.com/client/installer/SteamSetup.exe",
@@ -118,7 +119,6 @@ class ProgramDownloader(QMainWindow):
                 "VLC": "https://mirror.yandex.ru/mirrors/ftp.videolan.org/vlc/3.0.18/win64/vlc-3.0.18-win64.exe",
                 "Spotify": "https://download.scdn.co/SpotifySetup.exe",
                 "KMPlayer": "https://dl.comss.org/download/KMP64_2023.8.22.7.exe",
-                "Kodi": "https://mirrors.kodi.tv/releases/windows/win64/kodi-20.2-Nexus-x64.exe?https=1",
             },
             "Диск": {
                 "Yandex Disk": "https://webdav.yandex.ru/share/dist/YandexDisk30SetupPack.exe",
@@ -178,6 +178,11 @@ class ProgramDownloader(QMainWindow):
             }
             
             QPushButton:pressed {
+                background-color: #0175bd;
+                color: white;
+            }
+            
+            QPushButton:hover {
                 background-color: #0175bd;
                 color: white;
             }
@@ -258,15 +263,24 @@ class ProgramDownloader(QMainWindow):
                 button-layout: 0;
             }
         ''')
+
     def run_download_thread(self, program_name, download_link_or_path, download_folder):
         if download_link_or_path:
-            file_name = os.path.join(download_folder, f"{program_name}.exe")
-            if download_file(download_link_or_path, file_name):
+            file_extension = os.path.splitext(download_link_or_path)[1]  # Получаем расширение файла из ссылки
+            file_name = os.path.join(download_folder, f"{program_name}{file_extension}")
+
+            try:
+                urllib.request.urlretrieve(download_link_or_path, file_name)
                 self.downloaded_programs += 1
                 progress_value = int((self.downloaded_programs / self.selected_programs) * 100)
-                # self.progress_bar.setValue(progress_value)
+                with open('downloaded_programs.txt', 'a') as file:
+                    file.write(f"{program_name}: Да\n")
+            except Exception as e:
+                with open('downloaded_programs.txt', 'a') as file:
+                    file.write(f"{program_name}: Нет (Скачивание не удалось: {str(e)})\n")
         else:
-            QMessageBox.critical(self, "Error", f"No download link or path found for {program_name}")
+            with open('downloaded_programs.txt', 'a') as file:
+                file.write(f"{program_name}: Нет (Ссылка не найдена)\n")
 
     def download_selected_programs(self):
         download_folder = QFileDialog.getExistingDirectory(self, "Select Download Folder", QDir.currentPath())
@@ -277,6 +291,9 @@ class ProgramDownloader(QMainWindow):
 
         self.selected_programs = 0
         self.downloaded_programs = 0
+
+        with open('downloaded_programs.txt', 'w') as file:
+            file.write("Список скачанных программ:\n\n")
 
         for category, frame in self.category_frames.items():
             for i in range(frame.layout().count()):
@@ -296,6 +313,17 @@ class ProgramDownloader(QMainWindow):
                         download_link_or_path = self.programs[category][program_name]
                         download_thread = threading.Thread(target=self.run_download_thread, args=(program_name, download_link_or_path, download_folder))
                         download_thread.start()
+
+        # Ждем завершения всех потоков
+        for thread in threading.enumerate():
+            if thread != threading.current_thread():
+                thread.join()
+
+        # Создаем и открываем файл после завершения всех потоков
+        QMessageBox.information(self, "Download Completed", "Download completed.")
+        os.system("notepad.exe downloaded_programs.txt")
+
+
 
     def create_category_frames(self):
         for i, category in enumerate(self.programs.keys()):

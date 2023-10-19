@@ -13,7 +13,8 @@ build_options = {
     'build_exe': {
         'includes': [
             'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets',
-            'os', 'requests', 'subprocess', 'shutil', 'threading'
+            'os', 'requests', 'subprocess', 'shutil', 'threading',
+            'urllib.request'
         ],
         'include_files': [
 
@@ -25,7 +26,7 @@ build_options = {
 # Настройки setup
 setup(
     name="SetupApp",
-    version="1.0",
+    version="1.1",
     description="Описание вашей программы",
     options={
         'build_exe': build_options,
