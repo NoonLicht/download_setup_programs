@@ -58,6 +58,7 @@ class ProgramDownloader(QMainWindow):
                 "MSI Afterburner": "https://dl.comss.org/download/MSIAfterburnerSetup465.exe",
                 "AMD Software": "https://dl.comss.org/download/whql-amd-software-adrenalin-edition-23.9.1-win10-win11-sep6.exe",
                 "NVidia Driver": "https://dl.comss.org/download/GeForce_Experience_v3.27.0.112.exe",
+                "OpenVPN": "https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.6-I001-amd64.msi",
             },
             "Клиент": {
                 "Steam": "https://cdn.akamai.steamstatic.com/client/installer/SteamSetup.exe",
@@ -84,11 +85,11 @@ class ProgramDownloader(QMainWindow):
                 "7-Zip": "https://www.7-zip.org/a/7z2301-x64.exe",
                 "WinRAR": "https://www.rarlab.com/rar/winrar-x64-623ru.exe",
                 "PowerToys": "https://github.com/microsoft/PowerToys/releases/download/v0.73.0/PowerToysUserSetup-0.73.0-x64.exe",
-                "Notion(!)": "./exe/Notion.exe",
                 "NotePad++": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.5.7/npp.8.5.7.Installer.x64.exe",
                 "FileZilla": "https://www.filezilla.ru/download/FileZilla_3.65.0_win64-setup.exe",
                 "PuTTY": "https://github.com/putty-org-ru/PuTTY/releases/download/PuTTY-0.73-RU-17/putty-0.73-ru-17.zip",
                 "Microsoft Office(!)": "./exe/MicrosoftOffice.torrent",
+                "StartAllBack": "https://dl.comss.org/download/StartAllBack_3.6.13_setup.exe"
             },
             "Зависимости": {
                 "DirectX": "https://download.microsoft.com/download/1/7/1/1718CCC4-6315-4D8E-9543-8E28A4E18C4C/dxwebsetup.exe",
@@ -161,8 +162,12 @@ class ProgramDownloader(QMainWindow):
         self.central_widget.setLayout(self.layout)
 
         app.setStyleSheet('''
+            QWidget {
+                background: #2b2b2b;
+            }
+            
             QPushButton {
-                background-color: #ffffff;
+                background-color: #333333;
                 color: white;
                 font-size: 12px;
                 font-family: Calibri;
@@ -175,23 +180,6 @@ class ProgramDownloader(QMainWindow):
             QPushButton:pressed {
                 background-color: #0175bd;
                 color: white;
-            }
-            
-            QProgressBar {
-                border: 1px solid white;;
-                background-color: #242424;
-                font-size: 2px;
-                margin: 5px;
-                max-width: 190px;
-                height: 25px;
-            }
-            
-            QProgressBar::chunk {
-                background-color: #029cff
-            }
-            
-            QWidget {
-                background-color: #2b2b2b;
             }
             
             QFrame {
@@ -276,7 +264,7 @@ class ProgramDownloader(QMainWindow):
             if download_file(download_link_or_path, file_name):
                 self.downloaded_programs += 1
                 progress_value = int((self.downloaded_programs / self.selected_programs) * 100)
-                self.progress_bar.setValue(progress_value)
+                # self.progress_bar.setValue(progress_value)
         else:
             QMessageBox.critical(self, "Error", f"No download link or path found for {program_name}")
 
