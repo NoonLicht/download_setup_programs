@@ -140,6 +140,9 @@ class ProgramDownloader(QMainWindow):
         self.download_button = QPushButton("Download Selected")
         self.download_button.clicked.connect(self.download_selected_programs)
 
+        self.select_all_button = QPushButton("Select All")
+        self.select_all_button.clicked.connect(self.select_all_programs)    
+
         self.setup_button = QPushButton("Setup")
         self.enable_sandbox_button = QPushButton("Enable Sandbox")
         self.enable_hyperv_button = QPushButton("Enable Hyper-V")
@@ -152,6 +155,7 @@ class ProgramDownloader(QMainWindow):
 
         additional_buttons_layout = QHBoxLayout()
         additional_buttons_layout.addWidget(self.download_button)
+        additional_buttons_layout.addWidget(self.select_all_button)
         additional_buttons_layout.addWidget(self.setup_button)
         additional_buttons_layout.addWidget(self.enable_sandbox_button)
         additional_buttons_layout.addWidget(self.enable_hyperv_button)
@@ -323,7 +327,13 @@ class ProgramDownloader(QMainWindow):
         QMessageBox.information(self, "Download Completed", "Download completed.")
         os.system("notepad.exe downloaded_programs.txt")
 
-
+    def select_all_programs(self):
+        for category, frame in self.category_frames.items():
+            for i in range(frame.layout().count()):
+                widget = frame.layout().itemAt(i).widget()
+                if isinstance(widget, QCheckBox):
+                    checkbox = widget
+                    checkbox.setChecked(True)
 
     def create_category_frames(self):
         for i, category in enumerate(self.programs.keys()):
