@@ -3,10 +3,12 @@ import requests
 import subprocess
 import shutil
 import threading
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QCheckBox, QGridLayout, QFrame, QHBoxLayout, QFileDialog, QMessageBox
-from PyQt5.QtCore import QDir
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QVBoxLayout, QWidget, QPushButton, QCheckBox, QFrame, QFileDialog, QMessageBox, QHBoxLayout, QGridLayout
+from PyQt5.QtCore import Qt, QDir
+from PyQt5.QtGui import QPainter, QColor, QIcon, QPixmap
 import urllib.request
+import gettext
+
 
 app = QApplication([])
 
@@ -22,7 +24,7 @@ def download_file(url_or_path, destination):
             shutil.copy(url_or_path, destination)
         return True
     except Exception as e:
-        QMessageBox.critical(None, "Error", f"Failed to download file: {str(e)}")
+        QMessageBox.critical(None, "Ошибка", f"Ошибка скачивания файлов: {str(e)}")
         return False
 
 class ProgramDownloader(QMainWindow):
@@ -31,6 +33,7 @@ class ProgramDownloader(QMainWindow):
         
         app_icon = QIcon(':/icon/tab.ico')
         taskbar_icon = QIcon(':/icon/tab.ico')
+        
         self.setWindowIcon(app_icon)
         self.setWindowIcon(taskbar_icon)  # Установка иконки на панели задач
         self.download_completed_event = threading.Event()
@@ -137,16 +140,16 @@ class ProgramDownloader(QMainWindow):
         self.create_category_frames()
         self.organize_programs_into_frames()
 
-        self.download_button = QPushButton("Download Selected")
+        self.download_button = QPushButton("Загрузка")
         self.download_button.clicked.connect(self.download_selected_programs)
 
-        self.select_all_button = QPushButton("Select All")
-        self.select_all_button.clicked.connect(self.select_all_programs)    
+        self.select_all_button = QPushButton("Выбрать всё")
+        self.select_all_button.clicked.connect(self.select_all_programs)      
 
-        self.setup_button = QPushButton("Setup")
-        self.enable_sandbox_button = QPushButton("Enable Sandbox")
-        self.enable_hyperv_button = QPushButton("Enable Hyper-V")
-        self.install_wsl_button = QPushButton("Install WSL")
+        self.setup_button = QPushButton("Установка")
+        self.enable_sandbox_button = QPushButton("Песочница")
+        self.enable_hyperv_button = QPushButton("Hyper-V")
+        self.install_wsl_button = QPushButton("WSL Ubuntu")
 
         self.setup_button.clicked.connect(self.setup_exe)
         self.enable_sandbox_button.clicked.connect(self.sandbox_windows)
@@ -164,8 +167,14 @@ class ProgramDownloader(QMainWindow):
         self.layout.addLayout(additional_buttons_layout)
 
         self.central_widget.setLayout(self.layout)
-
+            
         app.setStyleSheet('''
+            QTitle {
+                background-color: #333333;
+                color: red;
+                padding: 6px;
+            }
+            
             QWidget {
                 background: #2b2b2b;
             }
@@ -287,10 +296,10 @@ class ProgramDownloader(QMainWindow):
                 file.write(f"{program_name}: Нет (Ссылка не найдена)\n")
 
     def download_selected_programs(self):
-        download_folder = QFileDialog.getExistingDirectory(self, "Select Download Folder", QDir.currentPath())
+        download_folder = QFileDialog.getExistingDirectory(self, "Выберите папку для загрузки", QDir.currentPath())
 
         if not download_folder:
-            QMessageBox.critical(self, "Error", "Please select a download folder.")
+            QMessageBox.critical(self, "Ошибка", "Пожалуйста, выберите папку для загрузки.")
             return
 
         self.selected_programs = 0
@@ -324,7 +333,7 @@ class ProgramDownloader(QMainWindow):
                 thread.join()
 
         # Создаем и открываем файл после завершения всех потоков
-        QMessageBox.information(self, "Download Completed", "Download completed.")
+        QMessageBox.information(self, "Загрузка завершена", "Загрузка завершена.")
         os.system("notepad.exe downloaded_programs.txt")
 
     def select_all_programs(self):
@@ -333,7 +342,7 @@ class ProgramDownloader(QMainWindow):
                 widget = frame.layout().itemAt(i).widget()
                 if isinstance(widget, QCheckBox):
                     checkbox = widget
-                    checkbox.setChecked(True)
+                    checkbox.setChecked(not checkbox.isChecked())
 
     def create_category_frames(self):
         for i, category in enumerate(self.programs.keys()):
@@ -377,7 +386,7 @@ class ProgramDownloader(QMainWindow):
 
             subprocess.Popen(wsl_install_command, shell=True)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to install WSL: {str(e)}")
+            QMessageBox.critical(self, "Ошибка", f"Не удалось установить WSL: {str(e)}")
 
     def sandbox_windows(self):
         sandbox_windows_command = 'Dism /online /Enable-Feature /FeatureName:"Containers-DisposableClientVM" /NoRestart'
@@ -385,7 +394,7 @@ class ProgramDownloader(QMainWindow):
         try:
             subprocess.Popen(sandbox_windows_command, shell=True)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to sandbox Windows: {str(e)}")
+            QMessageBox.critical(self, "Ошибка", f"Не удалось запустить изолированную среду Windows: {str(e)}")
 
     def enable_hyperv(self):
         enable_hyperv_command = 'DISM /Online /Enable-Feature /All /FeatureName:Microsoft-Hyper-V /NoRestart'
@@ -393,10 +402,10 @@ class ProgramDownloader(QMainWindow):
         try:
             subprocess.Popen(enable_hyperv_command, shell=True)
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to enable Hyper-V: {str(e)}")
+            QMessageBox.critical(self, "Ошибка", f"Не удалось включить Hyper-V: {str(e)}")
 
     def setup_exe(self):
-        installation_folder = QFileDialog.getExistingDirectory(self, "Select Download Folder", QDir.currentPath())
+        installation_folder = QFileDialog.getExistingDirectory(self, "Выберите папку загрузки", QDir.currentPath())
 
         exe_files = [filename for filename in os.listdir(installation_folder) if filename.endswith(".exe")]
 
@@ -408,12 +417,12 @@ class ProgramDownloader(QMainWindow):
                     subprocess.Popen(f'"{exe_path}"', shell=True).wait()
 
                 except Exception as e:
-                    QMessageBox.critical(self, "Error", f"Failed to install {exe_file}: {str(e)}")
+                    QMessageBox.critical(self, "Ошибка", f"Не удалось установить {exe_file}: {str(e)}")
 
-            QMessageBox.information(self, "Installation Completed", "All programs are installed.")
+            QMessageBox.information(self, "Установка завершена", "Все программы установлены.")
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to install programs: {str(e)}")
+            QMessageBox.critical(self, "Ошибка", f"Не удалось установить программы: {str(e)}")
 
 if __name__ == "__main__":
     window = ProgramDownloader()
