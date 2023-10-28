@@ -6,9 +6,8 @@ import threading
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QVBoxLayout, QWidget, QPushButton, QCheckBox, QFrame, QFileDialog, QMessageBox, QHBoxLayout, QGridLayout
 from PyQt5.QtCore import Qt, QDir
 from PyQt5.QtGui import QPainter, QColor, QIcon, QPixmap
-import urllib.request
 import gettext
-
+import time
 
 app = QApplication([])
 
@@ -278,22 +277,34 @@ class ProgramDownloader(QMainWindow):
         ''')
 
     def run_download_thread(self, program_name, download_link_or_path, download_folder):
+        start_time = time.time()
+
         if download_link_or_path:
-            file_extension = os.path.splitext(download_link_or_path)[1]  # Получаем расширение файла из ссылки
+            file_extension = os.path.splitext(download_link_or_path)[1]
             file_name = os.path.join(download_folder, f"{program_name}{file_extension}")
 
             try:
-                urllib.request.urlretrieve(download_link_or_path, file_name)
-                self.downloaded_programs += 1
-                progress_value = int((self.downloaded_programs / self.selected_programs) * 100)
-                with open('downloaded_programs.txt', 'a') as file:
-                    file.write(f"{program_name}: Да\n")
+                with requests.get(download_link_or_path, stream=True) as response:
+                    response.raise_for_status()
+                    with open(file_name, 'wb') as file:
+                        shutil.copyfileobj(response.raw, file)
+
+                    end_time = time.time()
+                    download_time = round(end_time - start_time, 2)
+
+                    self.downloaded_programs += 1
+                    progress_value = int((self.downloaded_programs / self.selected_programs) * 100)
+
+                    with open('downloaded_programs.txt', 'a') as file:
+                        file.write(f"{program_name}: Да         (Время скачивания: {download_time} сек.)\n")
+
             except Exception as e:
                 with open('downloaded_programs.txt', 'a') as file:
                     file.write(f"{program_name}: Нет (Скачивание не удалось: {str(e)})\n")
         else:
             with open('downloaded_programs.txt', 'a') as file:
                 file.write(f"{program_name}: Нет (Ссылка не найдена)\n")
+
 
     def download_selected_programs(self):
         download_folder = QFileDialog.getExistingDirectory(self, "Выберите папку для загрузки", QDir.currentPath())
@@ -331,6 +342,7 @@ class ProgramDownloader(QMainWindow):
         for thread in threading.enumerate():
             if thread != threading.current_thread():
                 thread.join()
+                
 
         # Создаем и открываем файл после завершения всех потоков
         QMessageBox.information(self, "Загрузка завершена", "Загрузка завершена.")
@@ -423,7 +435,7 @@ class ProgramDownloader(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось установить программы: {str(e)}")
-
+    
 if __name__ == "__main__":
     window = ProgramDownloader()
     window.show()
